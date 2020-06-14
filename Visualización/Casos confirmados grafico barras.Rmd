@@ -1,0 +1,70 @@
+---
+title: "Casos confirmados grafico barras"
+author: "Beatriz Huertas Calvillo"
+date: "13/6/2020"
+output: 
+ prettydoc::html_pretty:
+   theme: tactile
+   highlight: github
+  
+ 
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+# Librerías a utilizar
+library(tidyverse)
+library(gganimate)
+library(readxl)
+
+
+# Cargo los datos a trabajar
+cs_export <- read_excel("cs_export.xls") %>% print()
+
+# proceso los datos a utlizar
+confirmados <- 
+ cs_export %>% 
+  group_by(Territorio, `Fecha declaración`)%>% 
+  print()
+
+almeria <- confirmados %>% filter(Territorio=="Almería")
+almeriaacum <- colSums(almeria[3:8])
+cadiz <- confirmados %>% filter(Territorio=="Cádiz")
+cadizacum <- colSums(cadiz[3:8])
+cordoba <- confirmados %>% filter(Territorio=="Córdoba")
+cordobaacum <- colSums(cordoba[3:8])
+granada <- confirmados %>% filter(Territorio=="Granada")
+granadaacum <- colSums(granada[3:8])
+huelva <- confirmados %>% filter(Territorio=="Huelva")
+huelvaacum <- colSums(huelva[3:8])
+jaen <- confirmados %>% filter(Territorio=="Jaén")
+jaenacum <- colSums(jaen[3:8])
+malaga <- confirmados %>% filter(Territorio=="Málaga")
+malagaacum <- colSums(malaga[3:8])
+sevilla <- confirmados %>% filter(Territorio=="Sevilla")
+sevillaacum <- colSums(sevilla[3:8])
+
+dfaux <- data.frame("Provincia"=c("Sevilla","Málaga","Jaén","Huelva","Granada","Córdoba","Cádiz","Almería"),"ConfirmadosAcum"=c(sevillaacum[6],malagaacum[6],jaenacum[6],huelvaacum[6],granadaacum[6],cordobaacum[6],cadizacum[6],almeriaacum[6]))
+
+# genero el gráfico estático
+plot_conf <- 
+  ggplot(dfaux, 
+         aes(x = dfaux$ConfirmadosAcum, 
+             y = dfaux$Provincia, 
+             colour = as.factor(dfaux$Provincia), 
+             fill = as.factor(dfaux$Provincia))) + 
+  geom_bar(stat = "identity",position="stack") + 
+  scale_x_continuous(breaks = seq(500, 5000, 500), expand = c(0,0)) + 
+  theme_bw(base_family = "Avenir") + 
+  theme(axis.title = element_blank(), 
+        axis.ticks.y = element_blank(), 
+        legend.position = "none", 
+        panel.grid.minor = element_blank(), 
+        panel.grid.major.y = element_blank())+ggtitle("Casos confirmados mediante tests por provincias")
+
+plot_conf
+```
+

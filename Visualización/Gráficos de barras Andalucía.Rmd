@@ -1,0 +1,73 @@
+---
+title: "Gráficos de barras Andalucía"
+author: "Beatriz Huertas Calvillo"
+date: "14/6/2020"
+output: 
+ prettydoc::html_pretty:
+   theme: tactile
+   highlight: github
+  
+ 
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(openair)
+library(lattice)
+cs_export <- read_excel("cs_export.xls")
+filasandalucia <- filter(cs_export, Territorio=="Andalucía" )
+
+aux <- filasandalucia
+fechas <- as.Date(aux$`Fecha declaración`,"%d/%m/%Y")
+aux$`Fecha declaración` <- sort(fechas)
+
+
+c <- aux$Curados
+h <- aux$Hospitalizados
+d <- aux$Defunciones
+uci <- aux$UCI
+conf <- aux$`Confirmados PCR`
+totalconf <- aux$`Total confirmados (PCR+test)`
+
+salidac <- vector("numeric",length(c))
+salidah <-vector("numeric",length(h))
+salidad <- vector("numeric",length(d))
+salidauci <- vector("numeric",length(uci))
+salidaconf <- vector("numeric",length(conf))
+salidatotalconf <- vector("numeric",length(totalconf))
+
+for(i in seq_along(c)){
+  
+  salidac[length(c)+1-i] <- c[i]
+  salidah[length(h)+1-i] <- h[i]
+  salidad[length(d)+1-i] <- d[i]
+  salidauci[length(uci)+1-i] <- uci[i]
+  salidaconf[length(conf)+1-i] <- conf[i]
+  salidatotalconf[length(totalconf)+1-i] <- totalconf[i]
+  
+}
+aux$Curados <- salidac
+aux$Hospitalizados <- salidah
+aux$Defunciones <- salidad
+aux$UCI <- salidauci
+aux$`Confirmados PCR` <- salidaconf
+aux$`Total confirmados (PCR+test)` <- salidatotalconf
+
+
+
+
+barplot(names.arg=aux$`Fecha declaración`,aux$Defunciones,main="Defunciones diarias en Andalucía",col="grey45")
+barplot(names.arg=aux$`Fecha declaración`,aux$Curados,main="Curaciones diarias en Andalucía",col="limegreen")
+barplot(names.arg=aux$`Fecha declaración`,aux$Hospitalizados,main="Hospitalizaciones diarias en Andalucía",col="mediumorchid4")
+barplot(names.arg=aux$`Fecha declaración`,aux$UCI,main="Ingresos diarios en UCI en Andalucía",col="tomato3")
+barplot(names.arg=aux$`Fecha declaración`,aux$`Confirmados PCR`,main="Positivos en test PCR en Andalucía",col="orange2")
+barplot(names.arg=aux$`Fecha declaración`,aux$`Total confirmados (PCR+test)`,ylim=c(0,max(aux$`Total confirmados (PCR+test)`)),main="Confirmados diarios en Andalucía (PCR+test)",col="orange4")
+```
+

@@ -1,0 +1,83 @@
+---
+title: "Calendario defunciones y curados"
+author: "Beatriz Huertas Calvillo"
+date: "13/6/2020"
+output: 
+ prettydoc::html_pretty:
+   theme: tactile
+   highlight: github
+  
+ 
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r message=FALSE, warning=FALSE}
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(openair)
+library(lattice)
+cs_export <- read_excel("cs_export.xls")
+filasandalucia <- filter(cs_export, Territorio=="Andalucía" )
+#View(filasandalucia)
+colnames(filasandalucia)[1] <- "fecha"
+
+
+##Calendario defunciones
+filasandalucia$fecha <- as.factor(filasandalucia$fecha)
+class(filasandalucia$fecha)
+datos <- filasandalucia %>% 
+  select(date = fecha, Defunciones) %>% 
+  mutate(date = as.Date(date,format="%d/%m/%Y")) %>% 
+  # Quitar febrero
+  filter(month(date) != 2)
+
+datos <- as.data.frame(datos)
+
+# Guardar calendario
+#png("14.png", width = 10, height = 3.5, units = "in", res = 300)
+calendarPlot(datos,
+             pollutant = "Defunciones",
+             # Título
+             main = "Defunciones diarias por coronavirus en Andalucía \nMarzo-Mayo, 2020",
+             # Para que el calendario empiece en lunes
+             w.shift = 2,
+             limits = c(0, max(datos$Defunciones)),
+             # Colores para los eventos (del 0 al 3)
+             cols = c("white", "darkred"),
+             key.header = "Defunciones diarias")
+
+
+#dev.off()
+
+## Calendario curados
+
+datos <- filasandalucia %>% 
+  select(date = fecha, Curados) %>% 
+  mutate(date = as.Date(date,format="%d/%m/%Y")) %>% 
+  # Quitar febrero
+  filter(month(date) != 2)
+
+datos <- as.data.frame(datos)
+
+#png("15.png", width = 10, height = 3.5, units = "in", res = 300)
+calendarPlot(datos,
+             pollutant = "Curados",
+             # Título
+             main = "Curados cada día de coronavirus en Andalucía \nMarzo-Mayo, 2020",
+             # Para que el calendario empiece en lunes
+             w.shift = 2,
+             limits = c(0, max(datos$Curados)),
+             # Colores para los eventos (del 0 al 3)
+             cols = c("white", "darkgreen"),
+             key.header = "Curados cada día")
+
+
+#dev.off()
+```
+
