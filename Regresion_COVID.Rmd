@@ -1,0 +1,180 @@
+---
+title: "COVID"
+author: "María Vázquez"
+output:
+  prettydoc::html_pretty:
+    theme: architect
+    highlight: github
+---
+
+# Regresión COVID
+
+```{r, message=FALSE, warning=FALSE}
+library(readxl)
+library(ggplot2)
+library(dplyr)
+library(magrittr)
+library(ggplot2)
+library(GGally)
+```
+
+
+
+
+
+```{r, echo=FALSE}
+cs <- read_excel("C:/Users/M/Desktop/COVID/cs_export.xls", 
+    col_types = c("text", "text", "numeric", 
+        "numeric", "numeric", "numeric", 
+         "numeric", "numeric"))
+
+
+```
+
+Procesamos el dataset para poder trabajar con él.
+
+```{r}
+
+
+
+colnames(cs) <- c("Fecha", "Territorio", "Confirmados_PCR", "Hospitalizados", "UCI", "Curados", "Defunciones", "Total_confirmados")
+
+juntos <- 
+  filter(cs, cs$Territorio == "Andalucía")
+
+juntos <- mutate(juntos, Total = cumsum(Total_confirmados))
+
+                        
+                        
+c <- juntos$Curados
+h <- juntos$Hospitalizados
+d <- juntos$Defunciones
+uci <- juntos$UCI
+conf <- juntos$Confirmados_PCR
+totalconf <- juntos$Total_confirmados
+salidac <- vector("numeric",length(c))
+salidah <-vector("numeric",length(h))
+salidad <- vector("numeric",length(d))
+salidauci <- vector("numeric",length(uci))
+salidaconf <- vector("numeric",length(conf))
+salidatotalconf <- vector("numeric",length(totalconf))
+for(i in seq_along(c)){
+  
+  salidac[length(c)+1-i] <- c[i]
+  salidah[length(h)+1-i] <- h[i]
+  salidad[length(d)+1-i] <- d[i]
+  salidauci[length(uci)+1-i] <- uci[i]
+  salidaconf[length(conf)+1-i] <- conf[i]
+  salidatotalconf[length(totalconf)+1-i] <- totalconf[i]
+  
+}
+juntos$Curados <- salidac
+juntos$Hospitalizados <- salidah
+juntos$Defunciones <- salidad
+juntos$UCI <- salidauci
+juntos$Confirmados_PCR <- salidaconf
+juntos$Total_confirmados <- salidatotalconf
+                     
+  fechas <- as.Date(juntos$Fecha ,"%d/%m/%Y")
+juntos$Fecha <- sort(fechas)                      
+                        
+
+
+```
+
+
+Hacemos la gráfica de cómo han ido aumentando los casos en función del tiempo.
+
+```{r}
+attach(juntos)
+grafica <- juntos %>% ggplot(aes(x= Fecha, y= Total))+geom_point()
+grafica
+
+
+```
+
+  
+
+En esta gráfica podemos ver como el número de casos hasta mayo aumentaba de forma exponencial. Sin embargo, a apartir de esta fecha se empieza a reducir el número de casos por día, llegando entonces a la famosa cima.
+
+## Modelo del número de contagios respecto a la fecha
+
+```{r}
+modFC <- lm(formula = juntos$Total ~ juntos$Fecha, data = juntos)
+modFC
+```
+
+
+```{r}
+summary(modFC)
+
+```
+  
+
+Empezamos comprobando si hay modelo, para ello miramos los valores de F-statistic y p-value.
+**F-statistic** está bastante alejado del 1 (1609), por lo que nos indica que hay modelo.
+**P-value**, está muy por debajo del 0.005, lo que nos confirma que hay modelo(Se cumple H1)
+Ahora que sabemos que hay modelo, vamos a estudiar cómo de bueno es nuestro modelo.
+
+Miramos $R^2$, que tiene un valor de 0.9498, un valor bastante bueno, ya que el **94.98%** de los casos están recogidos con este modelo.
+También vemos que casi no hay diferencia entre $R^2$ ajustado y $R^2$, por lo que *no hay overfitting* en nuestro modelo y que los valores son relevantes(indicado por ***)  
+
+
+
+Sigamos estudiando el modelo, para ello vamos a ver las gráficas de los valores ajustados y residuos.
+
+```{r}
+plot(modFC)
+```
+
+En estas gráficas podemos apreciar como empieza ajustándose a los valores. Sin embargo, a medida que van aumentando más los casos hay más residuos.
+Esto puede ser debido a los resultados de las medidas de contingencia que fueron tomadas.
+
+
+Con todo esto podríamos decir que tenemos un modelo bastante bueno.
+
+
+
+
+
+
+## Modelo del número de personas que fueron hospitalizadas con respecto al número de contagiados.
+
+
+```{r}
+mHospitalizados <- lm(formula = Hospitalizados ~ Total_confirmados, data = juntos)
+mHospitalizados
+
+```
+
+
+```{r}
+summary(mHospitalizados)
+
+```
+Empezamos comprobando si hay modelo, para ello miramos los valores de F-statistic y p-value.
+F-statistic está bastante alejado del 1 (538), por lo que nos indica que hay modelo.
+P-value, está muy por debajo del 0.005, lo que nos confirma que hay modelo(Se cumple H1)
+Ahora que sabemos que hay modelo, vamos a estudiar cómo de bueno es nuestro modelo.
+
+Miramos $R^2$, que tiene un valor de 0.8636, un valor bastante bueno, ya que el 86.36% de los casos de hospitalización están recogidos en este modelo.
+También vemos que casi no hay diferencia entre $R^2$ ajustado y $R^2$, por lo que no hay overfitting en nuestro modelo y que los valores son relevantes(indicado por ***)
+
+
+
+Sigamos estudiando el modelo, para ello vamos a ver las gráficas de los valores ajustados y residuos.
+
+
+```{r}
+plot(mHospitalizados)
+```
+  
+
+En las gráficas podemos observar como hay dispersión de los valores, y como al principio se ajusta mejor que al final.
+También observamos que al principio del periodo el número de hospitalizados se acercaba bastante al número de casos. Pero a medida que se avanza en el tiempo el número de casos aumenta bastante, pero no tanto el número de hospitalizados. Esto puede ser debido a que se informó a la población de los primeros sintomas y las medidas que tenían que tomar, por lo que se podía detectar a una persona contagiada en las primeras fases y hacerle un control de forma que se podría reducir la gravedad.
+
+
+
+
+
+
