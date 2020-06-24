@@ -1,0 +1,93 @@
+---
+title: "COVID-Reglas de asociación"
+author: "Miguel Lillo"
+date: "15/6/2020"
+output: 
+  prettydoc::html_pretty:
+    theme: architect
+editor_options: 
+  chunk_output_type: console
+---
+# Reglas de asociación
+
+```{r message=FALSE}
+library(readxl)
+library(dplyr)
+library(arules)
+datos <- read_excel("cs_export(1).xls")
+#View(head(datos))
+datos <- na.omit(datos)
+```
+Separamos los datos de cada provincia de los de Andalucía
+```{r separar}
+datos$`Fecha declaración` <- as.Date(datos$`Fecha declaración`, "%d/%m/%Y")
+datos$Territorio <- as.factor(datos$Territorio)
+filasandalucia <- filter(datos, Territorio=="Andalucía" )
+provincias <- setdiff(datos,filasandalucia)
+nrow(provincias)
+nrow(filasandalucia)
+```
+Al trabajar con datos numéricos el primer paso que tenemos que llevar a cabo es discretizarlos. Las columnas UCI y Defunciones están muy sesgadas por lo tanto usamos un método distinto.
+```{r}
+summary(provincias$UCI)
+summary(provincias$Defunciones)
+```
+
+```{r discretizar}
+for(i in c(3,4,6,8)){
+  provincias[[i]] <- discretize(provincias[[i]],breaks = 4, labels = c("Bajo","Normal","Alto","Muy alto"))  
+}
+provincias$UCI <- ordered(cut(provincias$UCI, c(-1,40,60),
+  labels = c("Bajo", "Alto")))
+
+provincias$Defunciones <-  ordered(cut(provincias$Defunciones, c(-1,5,80),
+  labels = c("Bajo", "Alto")))
+
+
+for(i in c(3,4,6,8)){
+  filasandalucia[[i]] <- discretize(filasandalucia[[i]],breaks = 4, labels = c("Bajo","Normal","Alto","Muy alto"))  
+}
+filasandalucia$UCI <- ordered(cut(filasandalucia$UCI, c(-1,40,60),
+  labels = c("Bajo", "Alto")))
+
+filasandalucia$Defunciones <-  ordered(cut(filasandalucia$Defunciones, c(-1,5,80),
+  labels = c("Bajo", "Alto")))
+```
+
+Aplicamos el algoritmo _apriori_ al dataset de provincias
+
+```{r apriori}
+reglas <- apriori(provincias[3:length(provincias)],parameter=list(supp=0.05,conf=0.5, minlen=2))
+reglas <- sort(reglas,by="lift")
+reglas <- reglas[!is.redundant(reglas)]
+summary(reglas)
+```
+
+En principio trataremos de predecir el comportamiento de la variable _Hospitalizados_ en función de, por ejemplo, _Total confirmados (PCR+test)_ 
+```{r}
+#reglas_3 <- reglas[which(size(reglas)==3)]
+#inspect(head(reglas_3))
+
+s1 <- subset(reglas,subset=lhs %pin% "Total confirmados")
+inspect(head(s1))
+s1 <- subset(s1,subset=rhs %pin% "Hospitalizados")
+inspect(head(s1))
+```
+
+Podemos ver una relación clara entre el número de confirmados y el de hospitalizados.
+
+De la siguiente manera buscamos implicaciones que en la parte derecha tengan la variable _Defunciones_
+```{r}
+s2 <- subset(reglas,subset=rhs %pin% "Defunciones")
+inspect(head(s2))
+```
+
+Como podemos apreciar, la mayoría de las reglas nos dan información muy obvia como **{Hospitalizados=Muy alto, Total confirmados (PCR+test)=Muy alto} => {Defunciones=Alto}**
+También se puede interpretar como que hay una fuerte correlación entre las distintas columnas, pero es más eficaz aplicar métodos de regresión en estos casos en los que tenemos variables cuantitativas.
+
+
+
+
+
+
+
