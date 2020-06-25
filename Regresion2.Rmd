@@ -1,0 +1,90 @@
+---
+title: "Regresion multilineal"
+author: "Miguel Lillo"
+date: "25/6/2020"
+output: 
+  prettydoc::html_pretty:
+    theme: architect
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Regresión multilineal
+
+```{r message=FALSE}
+library(readxl)
+library(tidyverse)
+datos <- read_excel("cs_export(1).xls")
+datos <- na.omit(datos)
+
+names(datos) <- c(names(datos[1:2]),"Confirmados_PCR",names(datos[4:7]),"Total_confirmados")
+varPred <- names(datos[c(3:6,8)])
+datos$`Fecha declaración` <- as.Date(datos$`Fecha declaración`, "%d/%m/%Y")
+datos <- arrange(datos, `Fecha declaración`)
+filasandalucia <- filter(datos, Territorio=="Andalucía" )
+```
+Vamos a sacar un modelo de regresión multivariable que explique la variable _Defunción_ mediante una técnica iterativa en la que iremos añadiendo cada vez la variable cuyo R-ajustado sea mayor.
+
+
+Definimos una función para calcular el modelo lineal de una suma de variables
+```{r}
+linearAdjust <- function(df, y, x){
+  mod1 <- lm(str_c(y,"~",str_c(x,collapse="+")),df)
+}
+
+calcModR2 <- function(df,y,x){
+  mod <- linearAdjust(df,y,x)
+  summary(mod)$adj.r.squared
+}
+
+```
+
+Vamos añadiendo variables mientras que aumenten el valor de $R^2$ ajustado.
+```{r}
+encontrarMejorAjuste <- function(df,varPos){
+  bestVars <- character(0)
+  aR2 <- 0
+  repeat{
+    aR2v <- map_dbl(varPos,~calcModR2(df, "Defunciones",c(bestVars,.)))
+    i    <- which.max(aR2v)
+    aR2M <- aR2v[i]
+    
+    if(aR2M<=aR2 ||length(varPos)<1) break
+    #Valor del r-ajustado añadido y nombre de la variable elegida
+    cat(sprintf("%1.4f %s\n",aR2M,varPos[i]))
+    aR2 <- aR2M
+    bestVars <- c(bestVars,varPos[i])
+    varPos <- varPos[-i]
+  }
+  mod <- linearAdjust(df,"Defunciones",bestVars)
+  list(vars=bestVars,mod=mod)
+}
+bestMod <- encontrarMejorAjuste(filasandalucia, varPred)
+```
+
+```{r}
+bestMod
+summary(bestMod$mod)
+```
+El modelo obtenido sería de la forma:
+$$
+Defunciones=`r bestMod$mod$coefficients[1]` +`r bestMod$mod$coefficients[2]`·Hospitalizados+`r bestMod$mod$coefficients[3]`·UCI+`r bestMod$mod$coefficients[4]`·ConfirmadosPCR+`r bestMod$mod$coefficients[5]`·Curados+`r bestMod$mod$coefficients[6]`·TotalConfirmados
+$$
+Por último podemos representar la gráfica de los datos (morado) con la regresión obtenida superpuesta (rojo)
+
+```{r}
+g <- ggplot(filasandalucia, aes(x=`Fecha declaración`,y=Defunciones))+
+  ggtitle("Regresión multilineal")+
+  geom_point(colour="purple")+
+  geom_line(aes(`Fecha declaración`, predict.lm(bestMod$mod)), color="red")
+  
+g
+```
+
+
+
+
