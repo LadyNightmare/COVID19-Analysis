@@ -19,7 +19,7 @@ fc_covid$find_implications()
 fc_covid$implications
 ```
 
-As we can see, there are no implications.
+As we can see, there are no implications. Maybe this could be fixed discretizing the columns with data about the patients and healed.
 
 ```{r}
 fc_covid$find_concepts()
@@ -27,3 +27,4 @@ fc_covid$concepts
 fc_covid$concepts$plot()
 ```
 
+In this last plot we can see it's a quite small lattice, and it would require a deeper analysis to extract some conclusions.
