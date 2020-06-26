@@ -4,6 +4,7 @@
 library(readxl)
 library(dplyr)
 library(arules)
+library(arulesViz)
 datos <- read_excel("cs_export.xls")
 #View(head(datos))
 datos <- na.omit(datos)
@@ -71,6 +72,8 @@ In the following way we look for implications that on the right side have the va
 ```{r}
 s2 <- subset(reglas,subset=rhs %pin% "Defunciones")
 inspect(head(s2))
+s2Alto <- subset(reglas,subset=rhs %pin% "Defunciones=Alto")
+plot(s2Alto, method="graph", engine ="htmlwidget")
 ```
 
 As we can see, most of the rules give us very obvious information such as ** {Hospitalized = Very high, Total confirmed (PCR + test) = Very high} => {Deaths = High} **

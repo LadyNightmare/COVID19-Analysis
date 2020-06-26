@@ -14,8 +14,9 @@ editor_options:
 library(readxl)
 library(dplyr)
 library(arules)
+library(arulesViz)
 datos <- read_excel("cs_export(1).xls")
-#View(head(datos))
+View(head(datos))
 datos <- na.omit(datos)
 ```
 Separamos los datos de cada provincia de los de Andalucía
@@ -80,6 +81,8 @@ De la siguiente manera buscamos implicaciones que en la parte derecha tengan la 
 ```{r}
 s2 <- subset(reglas,subset=rhs %pin% "Defunciones")
 inspect(head(s2))
+s2Alto <- subset(reglas,subset=rhs %pin% "Defunciones=Alto")
+plot(s2Alto, method="graph", engine ="htmlwidget")
 ```
 
 Como podemos apreciar, la mayoría de las reglas nos dan información muy obvia como **{Hospitalizados=Muy alto, Total confirmados (PCR+test)=Muy alto} => {Defunciones=Alto}**
